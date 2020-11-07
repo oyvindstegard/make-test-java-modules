@@ -1,4 +1,4 @@
-# Demonstrates modular Java build and unit tests using GNU make as build tool
+# Demonstrates modular Java build and unit tests using GNU Make as build tool
 
 This silly experiment demonstrates use of GNU Make to compile modular Java
 source code with unit tests and automatic download of Maven style dependency
@@ -13,10 +13,18 @@ Purpose: experiment with GNU Make and java, and learn about some options of the
 Java module system and how to get it working in conjunction with unit tests and
 source code building in general.
 
+I do not recommend using GNU Make to build Java projects in general. However, it
+is blazingly fast once it works, compared to Maven or other tools :).
+
 ## Running
 
-Use `make` to download jar dependencies and compile the sources.
-Use `make test` to launch unit tests.
+Download jar dependencies and compile the sources:
+
+        make
+        
+Launch unit tests:
+
+        make test
 
 It launches JUnit 5 with Java 9+ module selection, rather than old style class
 path scanning.
