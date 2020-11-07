@@ -95,7 +95,8 @@ test: $(TARGETDIR)/test-build.flag
 	@echo Description of net.stegard.make.java module:
 	@$(JAVA) --module-path $(MODULEPATH):$(CLASSESDIR) -d net.stegard.make.java
 	@echo Launching tests ..
-	$(JAVA) --module-path $(MODULEPATH):$(CLASSESDIR) --add-modules ALL-MODULE-PATH org.junit.platform.console.ConsoleLauncher --disable-banner --select-module net.stegard.make.java
+	$(JAVA) --module-path $(MODULEPATH):$(CLASSESDIR) --add-modules ALL-MODULE-PATH \
+		org.junit.platform.console.ConsoleLauncher --disable-banner --select-module net.stegard.make.java
 
 # Clean up
 clean:
