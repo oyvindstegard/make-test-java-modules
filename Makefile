@@ -14,8 +14,11 @@
 # ## Running
 
 # Use `make` to download jar dependencies and compile the sources.
-# Use `make test` to launch unit tests.
-
+# Use `make test` to launch unit tests, optionally set JUNIT_ARGS to override test selection.
+#                 Default is to run all tests found in module.
+# Use `make main` to launch main class, optionally override main class with MAINCLASS variable.
+#                 Default is 'MAINCLASS=net.stegard.make.java.Main'.
+# Use `make modinfo` to show Java module runtime information.
 
 # Compiler and flags
 JAVA = java
@@ -30,25 +33,28 @@ CLASSESDIR = $(TARGETDIR)/classes
 
 # Library dependencies (download rules come later).
 # Must be complete including all transitive dependencies.
-DEPS += org.junit.jupiter:junit-jupiter-api:5.7.0
-DEPS += org.junit.jupiter:junit-jupiter-engine:5.7.0
-DEPS += org.junit.platform:junit-platform-engine:1.7.0
-DEPS += org.apiguardian:apiguardian-api:1.1.0
+DEPS += org.junit.jupiter:junit-jupiter-api:5.8.2
+DEPS += org.junit.jupiter:junit-jupiter-engine:5.8.2
+DEPS += org.junit.platform:junit-platform-engine:1.8.2
+DEPS += org.apiguardian:apiguardian-api:1.1.2
 DEPS += org.opentest4j:opentest4j:1.2.0
-DEPS += org.junit.platform:junit-platform-commons:1.7.0
-DEPS += org.junit.platform:junit-platform-reporting:1.7.0
-DEPS += org.junit.platform:junit-platform-launcher:1.7.0
-DEPS += org.junit.platform:junit-platform-console:1.7.0
-DEPS += org.mockito:mockito-core:3.6.0
-DEPS += net.bytebuddy:byte-buddy:1.10.17        # required by Mockito
-DEPS += net.bytebuddy:byte-buddy-agent:1.10.17  # required by Mockito
-DEPS += org.objenesis:objenesis:3.1             # required by Mockito
+DEPS += org.junit.platform:junit-platform-commons:1.8.2
+DEPS += org.junit.platform:junit-platform-reporting:1.8.2
+DEPS += org.junit.platform:junit-platform-launcher:1.8.2
+DEPS += org.junit.platform:junit-platform-console:1.8.2
+DEPS += org.mockito:mockito-core:4.6.1
+DEPS += net.bytebuddy:byte-buddy:1.12.10        # required by Mockito
+DEPS += net.bytebuddy:byte-buddy-agent:1.12.10  # required by Mockito
+DEPS += org.objenesis:objenesis:3.2             # required by Mockito
 
 grpId = $(word 1,$(subst :, ,$(1)))
 artId = $(word 2,$(subst :, ,$(1)))
 version =  $(word 3,$(subst :, ,$(1)))
 
 DEPJARS = $(foreach dep,$(DEPS),$(TARGETDIR)/$(call artId,$(dep))-$(call version,$(dep)).jar)
+
+# Main module
+MODULE = net.stegard.make.java
 
 # Construct Java class/module path. Make is quirky wrt. replacing space with
 # colon, so define literal space using a nested subst call.
@@ -58,6 +64,14 @@ MODULEPATH = $(subst $(subst ,, ),:,$(DEPJARS))
 SRCFILES = $(shell find $(SRCDIR) -name '*.java' -print)
 SRCTESTFILES = $(shell find $(SRCTESTDIR) -name '*.java' -print)
 
+# Build test classes, patch to make them part of main module
+$(TARGETDIR)/test-build.flag : $(TARGETDIR)/main-build.flag $(SRCTESTFILES) $(DEPJARS) | $(TARGETDIR)
+	$(JAVAC) $(JFLAGS) --module-path $(MODULEPATH):$(CLASSESDIR) -d $(CLASSESDIR) \
+		--source-path $(SRCTESTDIR) \
+		--patch-module $(MODULE)=src/test/java \
+		$(SRCTESTFILES)
+	touch $@
+
 # Build main class files with a single javac invocation, using flag file, and
 # order-only dep on target-dir. (In make 4.3+, it is possble to use the class
 # files themselves as grouped target, using "$(CLASSFILES) &: .." and still only
@@ -66,16 +80,15 @@ $(TARGETDIR)/main-build.flag : $(SRCFILES) $(DEPJARS) | $(TARGETDIR)
 	$(JAVAC) $(JFLAGS) -p $(MODULEPATH) -d $(CLASSESDIR) --source-path $(SRCDIR) $(SRCFILES)
 	touch $@
 
-# Build test classes, patch to make them part of main module
-$(TARGETDIR)/test-build.flag : $(TARGETDIR)/main-build.flag $(SRCTESTFILES) $(DEPJARS) | $(TARGETDIR)
-	$(JAVAC) $(JFLAGS) --module-path $(MODULEPATH):$(CLASSESDIR) -d $(CLASSESDIR) \
-		--source-path $(SRCTESTDIR) \
-		--patch-module net.stegard.make.java=src/test/java \
-		$(SRCTESTFILES)
-	touch $@
-
 $(TARGETDIR):
 	mkdir $@
+
+modinfo: $(TARGETDIR)/test-build.flag
+	@echo List of Java modules:
+	@$(JAVA) --module-path $(MODULEPATH):$(CLASSESDIR) --list-modules
+	@echo
+	@echo Description of $(MODULE) module:
+	@$(JAVA) --module-path $(MODULEPATH):$(CLASSESDIR) -d $(MODULE)
 
 # Dependency download rules. Notice that we use an order-only
 # prerequisite on the target directory "|..." for these, since we don't want to
@@ -89,17 +102,17 @@ $(DEPJARS): | $(TARGETDIR)
 	curl -H "Accept: application/java-archive" "$(filter %$(notdir $@),$(DEPURLS))" -o $@
 
 # Execute tests using JUnit ("@" in front disables command echoing)
+JUNIT_ARGS ?= --select-module $(MODULE)
 test: $(TARGETDIR)/test-build.flag
-	@echo List of Java modules:
-	@$(JAVA) --module-path $(MODULEPATH):$(CLASSESDIR) --list-modules
-	@echo Description of net.stegard.make.java module:
-	@$(JAVA) --module-path $(MODULEPATH):$(CLASSESDIR) -d net.stegard.make.java
-	@echo Launching tests ..
 	$(JAVA) --module-path $(MODULEPATH):$(CLASSESDIR) --add-modules ALL-MODULE-PATH \
-		org.junit.platform.console.ConsoleLauncher --disable-banner --select-module net.stegard.make.java
+		org.junit.platform.console.ConsoleLauncher --disable-banner $(JUNIT_ARGS)
+
+MAINCLASS ?= net.stegard.make.java.Main
+main: $(TARGETDIR)/test-build.flag
+	$(JAVA) --module-path $(MODULEPATH):$(CLASSESDIR) --module $(MODULE)/$(MAINCLASS)
 
 # Clean up
 clean:
 	rm -rf $(TARGETDIR)
 
-.PHONY: test clean
+.PHONY: main test modinfo clean
