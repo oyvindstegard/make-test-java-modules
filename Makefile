@@ -99,7 +99,7 @@ DEPURLS = $(foreach d,$(DEPS),\
 	$(REPO)/$(subst .,/,$(call grpId,$(d)))/$(call artId,$(d))/$(call version,$(d))/$(call artId,$(d))-$(call version,$(d)).jar)
 
 $(DEPJARS): | $(TARGETDIR)
-	curl -H "Accept: application/java-archive" "$(filter %$(notdir $@),$(DEPURLS))" -o $@
+	curl -sS -H "Accept: application/java-archive" "$(filter %$(notdir $@),$(DEPURLS))" -o $@
 
 # Execute tests using JUnit ("@" in front disables command echoing)
 JUNIT_ARGS ?= --select-module $(MODULE)
