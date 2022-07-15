@@ -20,14 +20,22 @@ is blazingly fast once it works, compared to Maven or other tools :).
 
 Download jar dependencies and compile the sources:
 
-        make
+    make
         
 Launch unit tests:
 
-        make test
+    make test
+    
+By default launches JUnit 5 with Java 9+ module selection, rather than old style
+class path scanning. You can customize arguments to JUnit launcher by setting
+variable `JUNIT_ARGS`.
 
-It launches JUnit 5 with Java 9+ module selection, rather than old style class
-path scanning.
+Or launch module main class:
+
+    make main
+    
+You can change to a different main class by setting variable `MAINCLASS` to a
+fully qualified class name in the main module.
 
 
 ## Resources
