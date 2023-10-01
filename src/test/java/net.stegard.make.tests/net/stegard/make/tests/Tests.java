@@ -1,4 +1,4 @@
-package net.stegard.make.java;
+package net.stegard.make.tests;
 
 import static net.stegard.make.java.Logger.*;
 

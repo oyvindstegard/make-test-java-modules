@@ -1,6 +1,7 @@
 package net.stegard.make.java;
 
 import static net.stegard.make.java.Logger.*;
+import static net.stegard.make.java.Main.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;

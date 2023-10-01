@@ -30,6 +30,7 @@ SRCDIR = src/main/java
 SRCTESTDIR = src/test/java
 TARGETDIR = target
 CLASSESDIR = $(TARGETDIR)/classes
+TEST_CLASSESDIR = $(TARGETDIR)/test-classes
 
 # Library dependencies (download rules come later).
 # Must be complete including all transitive dependencies.
@@ -49,26 +50,32 @@ DEPS += org.objenesis:objenesis:3.3             # required by Mockito
 
 grpId = $(word 1,$(subst :, ,$(1)))
 artId = $(word 2,$(subst :, ,$(1)))
-version =  $(word 3,$(subst :, ,$(1)))
+version = $(word 3,$(subst :, ,$(1)))
+spc2colon = $(subst $(subst ,, ),:,$(1))
 
 DEPJARS = $(foreach dep,$(DEPS),$(TARGETDIR)/$(call artId,$(dep))-$(call version,$(dep)).jar)
 
-# Main module
-MODULE = net.stegard.make.java
+# Java modules
+MAIN_MODULE = net.stegard.make.java
+MODULES = $(shell ls $(SRCDIR))
+TEST_MODULE = net.stegard.make.tests
 
-# Construct Java class/module path. Make is quirky wrt. replacing space with
-# colon, so define literal space using a nested subst call.
-MODULEPATH = $(subst $(subst ,, ),:,$(DEPJARS))
+# Construct Java class/module path. Make is quirky wrt. space, so use
+# spc2colon call to replace space with colon.
+MODULEPATH = $(call spc2colon,$(DEPJARS))
 
 # Locate Java source code files under main and test
-SRCFILES = $(shell find $(SRCDIR) -name '*.java' -print)
-SRCTESTFILES = $(shell find $(SRCTESTDIR) -name '*.java' -print)
+SRCFILES = $(shell find $(SRCDIR) -type f -name '*.java' -print)
+SRCTESTFILES = $(shell find $(SRCTESTDIR) -type f -name '*.java' -print)
 
-# Build test classes, patch to make them part of main module
+# Build test classes, patch inn all main modules classes to make them internal part of
+# test module.
+# Note: since we patch in source code of app modules here, the compiled app modules in $(CLASSESDIR)
+# do not need to be on the module path when compiling test classes.
 $(TARGETDIR)/test-build.flag : $(TARGETDIR)/main-build.flag $(SRCTESTFILES) $(DEPJARS) | $(TARGETDIR)
-	$(JAVAC) $(JFLAGS) --module-path $(MODULEPATH):$(CLASSESDIR) -d $(CLASSESDIR) \
-		--source-path $(SRCTESTDIR) \
-		--patch-module $(MODULE)=src/test/java \
+	$(JAVAC) $(JFLAGS) --module-path $(MODULEPATH) -d $(TEST_CLASSESDIR) \
+		--module-source-path $(SRCTESTDIR) \
+        --patch-module $(TEST_MODULE)=$(call spc2colon,$(addprefix $(SRCDIR)/,$(MODULES))) \
 		$(SRCTESTFILES)
 	touch $@
 
@@ -77,7 +84,7 @@ $(TARGETDIR)/test-build.flag : $(TARGETDIR)/main-build.flag $(SRCTESTFILES) $(DE
 # files themselves as grouped target, using "$(CLASSFILES) &: .." and still only
 # have make invoke javac once.)
 $(TARGETDIR)/main-build.flag : $(SRCFILES) $(DEPJARS) | $(TARGETDIR)
-	$(JAVAC) $(JFLAGS) -p $(MODULEPATH) -d $(CLASSESDIR) --source-path $(SRCDIR) $(SRCFILES)
+	$(JAVAC) $(JFLAGS) -p $(MODULEPATH) -d $(CLASSESDIR) --module-source-path $(SRCDIR) $(SRCFILES)
 	touch $@
 
 $(TARGETDIR):
@@ -85,10 +92,13 @@ $(TARGETDIR):
 
 modinfo: $(TARGETDIR)/test-build.flag
 	@echo List of Java modules:
-	@$(JAVA) --module-path $(MODULEPATH):$(CLASSESDIR) --list-modules
+	@$(JAVA) --module-path $(MODULEPATH):$(CLASSESDIR):$(TEST_CLASSESDIR) --list-modules
 	@echo
-	@echo Description of $(MODULE) module:
-	@$(JAVA) --module-path $(MODULEPATH):$(CLASSESDIR) -d $(MODULE)
+	@for module in $(MODULES) $(TEST_MODULE); do \
+		echo ;\
+		echo Description of module $$module: ;\
+		$(JAVA) --module-path $(MODULEPATH):$(CLASSESDIR):$(TEST_CLASSESDIR) -d $$module ;\
+	done
 
 # Dependency download rules. Notice that we use an order-only
 # prerequisite on the target directory "|..." for these, since we don't want to
@@ -102,14 +112,16 @@ $(DEPJARS): | $(TARGETDIR)
 	curl -sS -H "Accept: application/java-archive" "$(filter %$(notdir $@),$(DEPURLS))" -o $@
 
 # Execute tests using JUnit ("@" in front disables command echoing)
-JUNIT_ARGS ?= --select-module $(MODULE)
+# Note: also need to patch in the main modules here
+JUNIT_ARGS ?= --select-module $(TEST_MODULE)
 test: $(TARGETDIR)/test-build.flag
-	$(JAVA) --module-path $(MODULEPATH):$(CLASSESDIR) --add-modules ALL-MODULE-PATH \
+	$(JAVA) --module-path $(MODULEPATH):$(TEST_CLASSESDIR) --add-modules ALL-MODULE-PATH \
 		org.junit.platform.console.ConsoleLauncher --disable-banner $(JUNIT_ARGS)
 
+# Execute main class in main module
 MAINCLASS ?= net.stegard.make.java.Main
 main: $(TARGETDIR)/test-build.flag
-	$(JAVA) --module-path $(MODULEPATH):$(CLASSESDIR) --module $(MODULE)/$(MAINCLASS)
+	$(JAVA) --module-path $(MODULEPATH):$(CLASSESDIR) --module $(MAIN_MODULE)/$(MAINCLASS)
 
 # Clean up
 clean:
