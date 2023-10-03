@@ -75,7 +75,7 @@ SRCTESTFILES = $(shell find $(SRCTESTDIR) -type f -name '*.java' -print)
 $(TARGETDIR)/test-build.flag : $(TARGETDIR)/main-build.flag $(SRCTESTFILES) $(DEPJARS) | $(TARGETDIR)
 	$(JAVAC) $(JFLAGS) --module-path $(MODULEPATH) -d $(TEST_CLASSESDIR) \
 		--module-source-path $(SRCTESTDIR) \
-        --patch-module $(TEST_MODULE)=$(call spc2colon,$(addprefix $(SRCDIR)/,$(MODULES))) \
+	    --patch-module $(TEST_MODULE)=$(call spc2colon,$(addprefix $(SRCDIR)/,$(MODULES))) \
 		$(SRCTESTFILES)
 	touch $@
 
