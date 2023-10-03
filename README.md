@@ -37,6 +37,10 @@ Or launch module main class:
 You can change to a different main class by setting variable `MAINCLASS` to a
 fully qualified class name in the main module.
 
+Show info an all Java modules in project:
+
+    make modinfo
+
 
 ## Resources
 
