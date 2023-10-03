@@ -166,7 +166,7 @@ public class XmlElementContentMaskerTest {
     
     @Test
     public void empty_content() {
-        Function<String,String> masker = new XmlElementContentMasker("hush");
+        Function<String,String> masker = new XmlElementContentMasker<>("hush");
         assertEquals("", masker.apply(""));
     }
     
