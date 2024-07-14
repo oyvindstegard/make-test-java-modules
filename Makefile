@@ -112,6 +112,7 @@ $(DEPJARS): | $(TARGETDIR)
 	curl -sS -H "Accept: application/java-archive" "$(filter %$(notdir $@),$(DEPURLS))" -o $@
 
 # Execute tests using JUnit ("@" in front disables command echoing)
+# Assigning to variable with "?=" allows external value to override internal default.
 # Note: also need to patch in the main modules here
 JUNIT_ARGS ?= --select-module $(TEST_MODULE)
 test: $(TARGETDIR)/test-build.flag
