@@ -32,6 +32,10 @@ TARGETDIR = target
 CLASSESDIR = $(TARGETDIR)/classes
 TEST_CLASSESDIR = $(TARGETDIR)/test-classes
 
+# Java modules
+MAIN_MODULE = net.stegard.make.java
+TEST_MODULE = net.stegard.make.tests
+
 # Library dependencies (download rules come later).
 # Must be complete including all transitive dependencies.
 DEPS += org.junit.jupiter:junit-jupiter-api:5.10.3
@@ -55,10 +59,9 @@ spc2colon = $(subst $(subst ,, ),:,$(1))
 
 DEPJARS = $(foreach dep,$(DEPS),$(TARGETDIR)/$(call artId,$(dep))-$(call version,$(dep)).jar)
 
-# Java modules
-MAIN_MODULE = net.stegard.make.java
 MODULES = $(shell ls $(SRCDIR))
-TEST_MODULE = net.stegard.make.tests
+MAINCLASS ?= $(shell grep -rlE --include=*.java "public\s+static\s+void\s+main" $(SRCDIR)/$(MAIN_MODULE) | \
+                     sed -n -e "s:$(SRCDIR)/$(MAIN_MODULE)/::" -e 's:/:.:g' -e "s:.java$$::p;q")
 
 # Construct Java class/module path. Make is quirky wrt. space, so use
 # spc2colon call to replace space with colon.
@@ -120,7 +123,6 @@ test: $(TARGETDIR)/test-build.flag
 		org.junit.platform.console.ConsoleLauncher execute --disable-banner $(JUNIT_ARGS)
 
 # Execute main class in main module
-MAINCLASS ?= net.stegard.make.java.Main
 main: $(TARGETDIR)/test-build.flag
 	$(JAVA) --module-path $(MODULEPATH):$(CLASSESDIR) --module $(MAIN_MODULE)/$(MAINCLASS)
 
