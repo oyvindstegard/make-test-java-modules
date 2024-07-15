@@ -34,16 +34,16 @@ TEST_CLASSESDIR = $(TARGETDIR)/test-classes
 
 # Library dependencies (download rules come later).
 # Must be complete including all transitive dependencies.
-DEPS += org.junit.jupiter:junit-jupiter-api:5.9.3
-DEPS += org.junit.jupiter:junit-jupiter-engine:5.9.3
-DEPS += org.junit.platform:junit-platform-engine:1.9.3
+DEPS += org.junit.jupiter:junit-jupiter-api:5.10.3
+DEPS += org.junit.jupiter:junit-jupiter-engine:5.10.3
+DEPS += org.junit.platform:junit-platform-engine:1.10.3
 DEPS += org.apiguardian:apiguardian-api:1.1.2
-DEPS += org.opentest4j:opentest4j:1.2.0
-DEPS += org.junit.platform:junit-platform-commons:1.9.3
-DEPS += org.junit.platform:junit-platform-reporting:1.9.3
-DEPS += org.junit.platform:junit-platform-launcher:1.9.3
-DEPS += org.junit.platform:junit-platform-console:1.9.3
-DEPS += org.mockito:mockito-core:5.4.0
+DEPS += org.opentest4j:opentest4j:1.3.0
+DEPS += org.junit.platform:junit-platform-commons:1.10.3
+DEPS += org.junit.platform:junit-platform-reporting:1.10.3
+DEPS += org.junit.platform:junit-platform-launcher:1.10.3
+DEPS += org.junit.platform:junit-platform-console:1.10.3
+DEPS += org.mockito:mockito-core:5.12.0
 DEPS += net.bytebuddy:byte-buddy:1.14.5         # required by Mockito
 DEPS += net.bytebuddy:byte-buddy-agent:1.14.5   # required by Mockito
 DEPS += org.objenesis:objenesis:3.3             # required by Mockito
@@ -117,7 +117,7 @@ $(DEPJARS): | $(TARGETDIR)
 JUNIT_ARGS ?= --select-module $(TEST_MODULE)
 test: $(TARGETDIR)/test-build.flag
 	$(JAVA) --module-path $(MODULEPATH):$(TEST_CLASSESDIR) --add-modules ALL-MODULE-PATH \
-		org.junit.platform.console.ConsoleLauncher --disable-banner $(JUNIT_ARGS)
+		org.junit.platform.console.ConsoleLauncher execute --disable-banner $(JUNIT_ARGS)
 
 # Execute main class in main module
 MAINCLASS ?= net.stegard.make.java.Main
